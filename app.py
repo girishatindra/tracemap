@@ -124,6 +124,8 @@ def trace_ip():
     if is_valid_destination(ip):
         try:
             result = tracemap(ip)
+        except PermissionError: 
+            return jsonify({"error": "Please run as administrator and try again"}), 500
         except Exception as e:
             return jsonify({"error": "An Error Occured"}), 500
         return jsonify(result)
