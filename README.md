@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  <img width="60%" alt="logo" src="https://github.com/user-attachments/assets/5d48aa88-bfb5-4686-9d4f-0f330bb4020d" />
+  <img width="60%" alt="logo" src="./docs/logo.png" />
 
 
 </div>
@@ -25,7 +25,7 @@
 <div align='center'>
 
  
-<img width="755" height="530" alt="tracemap-demo (1)" src="https://github.com/user-attachments/assets/cd3efe4c-41f7-4aa0-aa81-0315bba09aa1" />
+<img width="755" height="530" alt="tracemap demo" src="./docs/tracemap-demo.gif" />
 
 
 </div>
