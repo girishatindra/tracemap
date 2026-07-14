@@ -115,6 +115,7 @@ Currently an MVP. Planned expansions include:
 - Exportable route reports: save trace results as JSON or CSV for offline analysis
 - API rate limiting: protect the `/trace` endpoint from rapid repeat requests
 - IPQuery response caching: reduce redundant API calls for IPs seen across multiple traces
+- Public deployment: host TraceMap as a web accessible tool, removing the need for local installation
 
 <br>
 <br>

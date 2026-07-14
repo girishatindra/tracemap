@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraceMap - Visualize Your Packets</title>
+     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=VT323&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+                --color-highlight: #fff085;
+                --font-inconsolata: 'Inconsolata', monospace;
+                --font-vt323: 'VT323', monospace;
+            }
+        
+        [x-cloak] { display: none !important; }
+
+    </style>
+</head>
+<body>
+    <div id="main" class="flex flex-col items-center justify-center size-full" x-data="tracemap()">
+        
+        <div class="w-150 h-30 mt-7 mb-2" >
+            <img class="w-full h-full object-contain" src="{{ url_for('static', filename='assets/logo.png') }}" alt="logo">
+        </div>
+        
+        <div class="">
+            <input x-model="query" class="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400" type="text" id="ip" :disabled="loading" placeholder="Enter IP address or Domain" @keyup.enter="run()">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer" :disabled="loading" id="search" @click="run()">Trace</button>
+        </div>
+
+        <div id="results" class="flex gap-2 m-10 relative">
+
+        <div x-show="error" x-cloak class="flex flex-col items-center justify-center border border-gray-300 rounded-xl shadow-md py-2 px-4 h-100 w-150 bg-white bg-opacity-50">
+            <div class="w-50 h-50  rounded-full shadow-lg overflow-hidden mb-2">
+                <img class="w-50 h-50 object-cover" src="{{ url_for('static', filename='assets/cat.gif') }}" alt="error" >
+            </div>
+            <p class="font-inconsolata text-lg p-5"><i x-text="error"></i></p>
+        </div> 
+
+        <div x-show="tracing && loading && !error" x-cloak class="flex flex-col items-center justify-center border border-gray-300 rounded-xl shadow-md py-2 px-4 h-100 w-100 bg-white bg-opacity-50 z-10">
+            <div class="w-50 h-50  rounded-full shadow-lg overflow-hidden mb-2">
+                <img class="w-full h-full object-cover" src="{{ url_for('static', filename='assets/loading.gif') }}" alt="Loading" >
+            </div>
+            <p class="font-inconsolata text-lg p-5"><i>Tracing...</i></p>
+        </div>
+
+        <div x-show="!traced && !loading && !error" x-cloak class="flex flex-col items-center justify-center border border-gray-300 rounded-xl shadow-md py-2 px-4 h-120 w-150">
+            <div class="w-70 h-70  rounded-full shadow-lg overflow-hidden mb-2 flex items-center justify-center">
+                <img class="w-60 h-60 object-contain" src="{{ url_for('static', filename='assets/table.gif') }}" alt="Searching" >
+            </div>
+            <p class="font-inconsolata text-lg p-5"><i>Your packet's paper trail shows up here.</i></p>
+        </div>
+
+        <div class="border border-gray-300 rounded-xl shadow-md py-2 px-4 h-120 w-150 overflow-y-auto" x-show="traced && !loading && !error" x-cloak>
+            <table class="table-auto border-collapse border border-gray-300 mt-5 text-center w-full">
+                <thead>
+                    <tr class="text-white bg-black font-vt323 text-lg">
+                        <th class="px-2 py-1 ">TTL</th>
+                        <th class="px-2 py-1 ">IP</th>
+                        <th class="px-2 py-1 ">TYPE</th>
+                        <th class="px-2 py-1 ">RTT/ms</th>
+                        <th class="px-2 py-1 ">RTT/ms</th>
+                        <th class="px-2 py-1 ">RTT/ms</th>
+                    </tr>
+                </thead>
+                <tbody id="trace-results" class="font-inconsolata text-sm">
+                    <template x-for="hop in hops" :key="hop.ttl">
+                        <tr :class="hop.kind === 'public' ? 'font-semibold cursor-pointer bg-blue-300 text-white hover:bg-blue-500' : 'cursor-auto' " @click="focusHop(hop.ttl)">
+                            <td class="px-2 py-1  " x-text="hop.ttl"></td>
+                            <td class="px-2 py-1  " x-text="hop.ip"></td>
+                            <td class="px-2 py-1  " x-text="hop.kind"></td>
+                            <template x-for="(rtt, index) in hop.rtts" :key="index">
+                                <td class="px-2 py-1 " x-text="rtt"></td>                  
+                            </template>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <div x-show="!traced && !loading && !error" x-cloak class="flex flex-col items-center justify-center border border-gray-300 rounded-xl shadow-md py-2 px-4 h-120 w-150">
+            <div class="w-70 h-70  flex rounded-full shadow-lg overflow-hidden mb-2">
+                <img class="w-70 h-70 object-contain" src="{{ url_for('static', filename='assets/map.gif') }}" alt="World Map" >
+            </div>
+            <p class="font-inconsolata text-lg p-5"><i>Watch your packets hop across the globe.</i></p>
+        </div>
+
+        <div id="map" x-show="traced && !error && !loading && map" x-cloak class="border border-gray-300 rounded-xl shadow-md py-2 px-4 h-120 w-150"></div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='scripts/script.js') }}" ></script>
+</body>
+</html>
